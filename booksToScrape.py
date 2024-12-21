@@ -2,6 +2,60 @@ import requests
 import csv
 import os
 from bs4 import BeautifulSoup
+import pandas as pd
+from dotenv import load_dotenv
+import mysql.connector
+
+def connect_to_mysql():
+    # Load environment variables from .env file
+    load_dotenv()
+    
+    # Correctly assign variables without commas
+    host = os.getenv("DB_HOST")
+    user = os.getenv("DB_USER")
+    password = os.getenv("DB_PASSWORD")
+    database = os.getenv("DB_NAME")
+
+    try:
+    # Establish a connection to the MySQL database
+        connection = mysql.connector.connect(
+            host=host,
+            user=user,
+            password=password,
+            database=database
+        )
+        if connection.is_connected():
+            print("Connected to MySQL database")
+            return connection
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return None
+
+def save_to_sql(articles, prices):
+    # Establish connection
+    connected = connect_to_mysql()
+
+    if connected:
+        try:
+            # Create a cursor object to execute SQL queries
+            cursor = connected.cursor()
+
+            # Prepare the insert query
+            insert_query = "INSERT INTO bookstoscrape (title, price) VALUES (%s, %s)"
+            data_to_insert = list(zip(articles, prices))
+
+            # Execute the insert query for each book in the data list
+            cursor.executemany(insert_query, data_to_insert)
+            
+            # Commit the transaction (important to save changes)
+            connected.commit()
+            print(f"{cursor.rowcount} rows inserted.")
+        except mysql.connector.Error as err:
+            print(f"Error: {err}")
+        finally:
+            # Close the cursor and connection
+            cursor.close()
+            connected.close()
 
 def fetch_html(url):
     try:
@@ -92,7 +146,9 @@ def main():
                 # Extract book titles and prices
                 article_titles, price_values = extract_data(parsed_html)
                 # Save the extracted data to a CSV file
-                save_to_csv('scrapedB2S.csv', article_titles, price_values)
+                save_to_csv("books_to_scrape.csv", article_titles, price_values)
+                # Save the extracted data to a MySQL database
+                save_to_sql(article_titles, price_values)
 
 # Run the main function if this script is executed directly
 if __name__ == "__main__":
