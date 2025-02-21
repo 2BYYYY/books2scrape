@@ -2,7 +2,6 @@ import requests
 import csv
 import os
 from bs4 import BeautifulSoup
-import pandas as pd
 from dotenv import load_dotenv
 import mysql.connector
 
@@ -121,7 +120,7 @@ def get_page_range(parsed_html):
     return first_page, last_page
 
 def main():
-    # Base URL for the pages to scrape
+    # Base URL for the pages to scrape, format method replaces {} with page number
     base_url = "https://books.toscrape.com/catalogue/page-{}.html"
     # URL of the first page to determine the range of pages
     first_page_url = "https://books.toscrape.com/index.html"
